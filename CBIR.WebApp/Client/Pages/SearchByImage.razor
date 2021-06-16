@@ -1,0 +1,161 @@
+﻿@page "/searchbyimage"
+
+@inject HttpClient httpClient
+
+<RadzenPanel AllowCollapse="true">
+    <HeaderTemplate>
+        <span style="float:left;">
+            Query Parameters
+        </span>
+    </HeaderTemplate>
+    <ChildContent>
+        <div class="row">
+            <div class="col-md-3">
+                <RadzenCheckBox @bind-Value="strict" />
+                <RadzenLabel Text="Strict" Style="margin-left: 2px;" />
+                <br />
+                <RadzenLabel Text="Mode" />
+                <RadzenDropDown Data="queryModes" TextProperty="Name" ValueProperty="Value"
+                                @bind-Value="mode" TValue="ImageComparisonMode" />
+                <RadzenLabel Text="Threshold" />
+                <RadzenNumeric @bind-Value="threshold" TValue="double" ShowUpDown="false" Min="0" />
+                <RadzenLabel Text="Detector" />
+                <RadzenDropDown Data="detectorTypes" TextProperty="Name" ValueProperty="Value"
+                                @bind-Value="detector" TValue="ImageKeypointsDetector" />
+                <RadzenLabel Text="Max results" />
+                <RadzenNumeric @bind-Value="maxResults" TValue="int" ShowUpDown="true" Min="0" />
+                <br />
+                <RadzenButton Click=@(async x => await OnSearch())>
+                    <span class="oi oi-magnifying-glass" aria-hidden="true"></span>
+                </RadzenButton>
+                <RadzenButton Click=@(async x => await OnImport()) ButtonStyle="Radzen.ButtonStyle.Secondary">
+                    <span class="oi oi-plus" aria-hidden="true"></span>
+                </RadzenButton>
+            </div>
+            <div class="col-md-9">
+                <RadzenUpload ChooseText="Select image" Multiple="false"
+                              Accept="image/*"
+                              Url=@($"/Images/UploadImageQry")
+                              Style="margin-bottom: 20px"
+                              Complete=@OnComplete />
+                <RadzenImage Path="@queryImageUri" Style="width:100%;" />
+            </div>
+        </div>
+    </ChildContent>
+</RadzenPanel>
+
+<RadzenLabel Text="Searching..." Style="margin-left: 2px;" @bind-Visible="isSearching"/>
+
+<RadzenDataList @ref="dataList" WrapItems="true" AllowPaging="true" Data="@images" TItem="ImageDto">
+    <Template Context="image">
+        <RadzenCard Style="width:300px;">
+            <div class="row">
+                <div class="col-md-6">
+                    <b>Has relevance:</b>
+                    <RadzenCheckBox @bind-Value="@image.HasRelevance" />
+                    <b>Category:</b>
+                    <div>@image.Category</div>
+                    <b>Relevance:</b>
+                    <div>@image.RelevanceText</div>
+                    <br />
+                    <RadzenImage Path="@image.ExternalFile" Style="width:100%;" />
+                </div>
+            </div>
+
+        </RadzenCard>
+    </Template>
+</RadzenDataList>
+
+@code
+{
+    private bool isSearching = false;
+
+    private string queryImageUri;
+
+    private bool strict = false;
+    private double threshold = 100;
+
+    private int maxResults = 25;
+
+    private ImageKeypointsDetector detector;
+    private IEnumerable<object> detectorTypes =
+        Enum
+            .GetValues<ImageKeypointsDetector>()
+            .Select(x => new
+            {
+                Name = Enum.GetName<ImageKeypointsDetector>(x),
+                Value = x
+            });
+
+    private ImageComparisonMode mode;
+    private IEnumerable<object> queryModes =
+        Enum
+            .GetValues<ImageComparisonMode>()
+            .Select(x => new
+            {
+                Name = Enum.GetName<ImageComparisonMode>(x),
+                Value = x
+            });
+
+    private ImageDto[] images = new ImageDto[0];
+
+    private RadzenDataList<ImageDto> dataList;
+
+    private async Task OnSearch()
+    {
+        if (isSearching)
+            return;
+
+        if (!string.IsNullOrEmpty(queryImageUri))
+        {
+            images = new ImageDto[0];
+            await dataList.Reload();
+
+            try
+            {
+                isSearching = true;
+
+                var filename = queryImageUri.Split('=')[1];
+                images = (await httpClient.GetFromJsonAsync<ImageDto[]>($"Images/ByImage?queryImgName={filename}&strict={strict}&mode={mode}&threshold={threshold}&detector={detector}&max={maxResults}"))
+                        .OrderByDescending(x => x.Relevance)
+                        .ToArray();
+            }
+            finally
+            {
+                isSearching = false;
+            }
+
+            await dataList.FirstPage();
+        }
+    }
+
+    private async Task OnImport()
+    {
+        if (!string.IsNullOrEmpty(queryImageUri) && images.Any(x => x.HasRelevance))
+        {
+            var filename = queryImageUri.Split('=')[1];
+            var categories = images
+                .Where(x => x.HasRelevance)
+                .Select(x => x.Category)
+                .Distinct()
+                .Aggregate((result, item) => result += $", {item}");
+            var content = JsonContent.Create(new ImportedImageDto()
+            {
+                Filename = filename,
+                Category = categories
+            });
+            var response = await httpClient.PostAsync($"Images/Import", content);
+            if (response.StatusCode == System.Net.HttpStatusCode.OK || response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                foreach (var img in images)
+                    if (img.HasRelevance)
+                        img.HasRelevance = false;
+            }
+        }
+    }
+
+    private void OnComplete(Radzen.UploadCompleteEventArgs args)
+    {
+        queryImageUri = args.RawResponse;
+    }
+}

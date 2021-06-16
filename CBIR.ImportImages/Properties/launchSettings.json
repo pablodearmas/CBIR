@@ -1,0 +1,24 @@
+{
+  "profiles": {
+    "CBIR.ImportImages - import": {
+      "commandName": "Project",
+      "commandLineArgs": "import --path C:\\School\\Works\\CBIR\\CBIR\\Datasets\\Caltech-256 --img-x-fldr 10 -s"
+    },
+    "CBIR.ImportImages - test by image": {
+      "commandName": "Project",
+      "commandLineArgs": "test-img --img D:\\Works\\Pablo\\CBIR\\Datasets\\Caltech-256\\airplanes\\251_0003.jpg --thresholds 1.0"
+    },
+    "CBIR.ImportImages - test by category": {
+      "commandName": "Project",
+      "commandLineArgs": "test-ctg --categ glove bat"
+    },
+    "CBIR.ImportImages - compare two images": {
+      "commandName": "Project",
+      "commandLineArgs": "cmp-img --img D:\\Works\\Pablo\\CBIR\\Datasets\\Caltech-256\\airplanes\\251_0017.jpg D:\\Works\\Pablo\\CBIR\\Datasets\\Caltech-256\\airplanes\\251_0017-s.jpg -d"
+    },
+    "CBIR.ImportImages - test by image descriptor": {
+      "commandName": "Project",
+      "commandLineArgs": "test-img --img D:\\Works\\Pablo\\CBIR\\Datasets\\CIFAR-10\\test\\airplane\\0071.jpg -d  --desc brisk "
+    }
+  }
+}

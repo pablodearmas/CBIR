@@ -1,0 +1,56 @@
+﻿@page "/searchbykey"
+
+@inject HttpClient httpClient
+
+<dic class="row">
+    <div class="col-xl-8">
+        <RadzenTextBox @bind-Value="keys" Placeholder="List of keys, separated by commas..." Style="width: 100%" />
+    </div>
+    <div class="col-xl-2">
+        <RadzenCheckBox @bind-Value="strict" />
+        <RadzenLabel Text="Strict" Style="margin-left: 5px;" />    
+    </div>
+    <div class="col-xl-2">
+        <RadzenButton Click=@(async x => await OnSearch()) Text="Search" />
+    </div>
+</dic>
+
+
+<RadzenDataList @ref="dataList" WrapItems="true" AllowPaging="true" Data="@images" TItem="ImageDto">
+    <Template Context="image">
+        <RadzenCard Style="width:300px;">
+            <div class="row">
+                <div class="col-md-6">
+                    <div>Category:</div>
+                    <b>@image.Category</b>
+                    <div>Relevance:</div>
+                    <b>@image.RelevanceText</b>
+                    <br />
+                    <RadzenImage Path="@image.ExternalFile" Style="width:300px;" />
+                </div>
+            </div>
+
+        </RadzenCard>
+    </Template>
+</RadzenDataList>
+
+@code 
+{
+    private string keys;
+    private bool strict = false;
+    private ImageDto[] images = new ImageDto[0];
+
+    private RadzenDataList<ImageDto> dataList;
+
+    private async Task OnSearch()
+    {
+        if (!string.IsNullOrEmpty(keys))
+        {
+            images = new ImageDto[0];
+            await dataList.Reload();
+
+            images = await httpClient.GetFromJsonAsync<ImageDto[]>($"Images/ByKey?keys={keys}&strict={strict}");
+            await dataList.FirstPage();
+        }
+    }
+}

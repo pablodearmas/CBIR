@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="5.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\CBIR.CV\CBIR.CV.csproj" />
+    <ProjectReference Include="..\..\CBIR.Data\CBIR.Data.csproj" />
+    <ProjectReference Include="..\..\CBIR.Model\CBIR.Model.csproj" />
+    <ProjectReference Include="..\Client\CBIR.WebApp.Client.csproj" />
+    <ProjectReference Include="..\Shared\CBIR.WebApp.Shared.csproj" />
+  </ItemGroup>
+
+
+</Project>

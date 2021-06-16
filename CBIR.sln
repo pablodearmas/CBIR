@@ -1,0 +1,61 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31005.135
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CBIR.Model", "CBIR.Model\CBIR.Model.csproj", "{10B0B1B0-1CF4-467B-A794-3022EB1CDBAA}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CBIR.Data", "CBIR.Data\CBIR.Data.csproj", "{A41EC94C-8AD9-4BAA-96CA-F5D2A5A8BEE1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CBIR.ImportImages", "CBIR.ImportImages\CBIR.ImportImages.csproj", "{90AD9CDD-C881-482E-A932-72431583FF67}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CBIR.CV", "CBIR.CV\CBIR.CV.csproj", "{193409D5-6B32-4F48-91E9-0FE5CE41AFC3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CBIR.WebApp.Server", "CBIR.WebApp\Server\CBIR.WebApp.Server.csproj", "{38C28FE4-73EA-4F9A-A251-963007827B93}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CBIR.WebApp.Client", "CBIR.WebApp\Client\CBIR.WebApp.Client.csproj", "{ECEC6698-11A9-40B2-874B-53CF79189A7D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CBIR.WebApp.Shared", "CBIR.WebApp\Shared\CBIR.WebApp.Shared.csproj", "{F9B66901-8AB1-460D-9BDC-3A419AC4A07D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{10B0B1B0-1CF4-467B-A794-3022EB1CDBAA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{10B0B1B0-1CF4-467B-A794-3022EB1CDBAA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{10B0B1B0-1CF4-467B-A794-3022EB1CDBAA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{10B0B1B0-1CF4-467B-A794-3022EB1CDBAA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A41EC94C-8AD9-4BAA-96CA-F5D2A5A8BEE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A41EC94C-8AD9-4BAA-96CA-F5D2A5A8BEE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A41EC94C-8AD9-4BAA-96CA-F5D2A5A8BEE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A41EC94C-8AD9-4BAA-96CA-F5D2A5A8BEE1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{90AD9CDD-C881-482E-A932-72431583FF67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{90AD9CDD-C881-482E-A932-72431583FF67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{90AD9CDD-C881-482E-A932-72431583FF67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{90AD9CDD-C881-482E-A932-72431583FF67}.Release|Any CPU.Build.0 = Release|Any CPU
+		{193409D5-6B32-4F48-91E9-0FE5CE41AFC3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{193409D5-6B32-4F48-91E9-0FE5CE41AFC3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{193409D5-6B32-4F48-91E9-0FE5CE41AFC3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{193409D5-6B32-4F48-91E9-0FE5CE41AFC3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{38C28FE4-73EA-4F9A-A251-963007827B93}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38C28FE4-73EA-4F9A-A251-963007827B93}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{38C28FE4-73EA-4F9A-A251-963007827B93}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38C28FE4-73EA-4F9A-A251-963007827B93}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ECEC6698-11A9-40B2-874B-53CF79189A7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ECEC6698-11A9-40B2-874B-53CF79189A7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ECEC6698-11A9-40B2-874B-53CF79189A7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ECEC6698-11A9-40B2-874B-53CF79189A7D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F9B66901-8AB1-460D-9BDC-3A419AC4A07D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9B66901-8AB1-460D-9BDC-3A419AC4A07D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9B66901-8AB1-460D-9BDC-3A419AC4A07D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9B66901-8AB1-460D-9BDC-3A419AC4A07D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0E7CA9DF-E558-48B8-A049-67053EB875EE}
+	EndGlobalSection
+EndGlobal
