@@ -20,11 +20,18 @@ namespace CBIR.ImportImages
 		[Option("path", Required = true, HelpText = "path of directory with the images")]
 		public string RootFolder { set; get; }
 
-		[Option("img-x-fldr", Required = true, HelpText = "max images per folder")]
+		[Option("img-x-fldr", Required = false, HelpText = "max images per folder")]
 		public uint? MaxImagesPerFolder { set; get; }
 
 		[Option('s', Required = false, Default = false, HelpText = "import images sorting by name")]
 		public bool ImportByName { set; get; }
+
+		[Option('m', Required = false, Default = false, HelpText = "create ML model")]
+		public bool TrainModel { set; get; }
+
+		[Option("inception-path", Required = false, HelpText = "path of pre-trained inception model")]
+		public string InceptionPath { set; get; }
+
 	}
 
 	[Verb("test-ctg", HelpText = "test by category")]
@@ -51,6 +58,16 @@ namespace CBIR.ImportImages
 
 		[Option("desc", Required = false, Default = ImageDescriptorType.Default, HelpText = "use descriptor in place of hashes")]
 		public ImageDescriptorType DescriptorType { set; get; }
+	}
+
+	[Verb("test-ml", HelpText = "test by image classifier using ML")]
+	public class TestByMLOptions : GlobalOptions
+	{
+		[Option("img", Required = true, HelpText = "image full path")]
+		public string ImageName { set; get; }
+
+		[Option("inception-path", Required = false, HelpText = "path of pre-trained inception model")]
+		public string InceptionPath { set; get; }
 	}
 
 	[Verb("cmp-img", HelpText = "compare two images")]

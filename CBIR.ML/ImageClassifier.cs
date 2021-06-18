@@ -53,6 +53,7 @@ namespace CBIR.ML
         public ImageClassifier()
         {
             mlContext = new MLContext();
+            Environment.SetEnvironmentVariable("TF_CPP_MIN_LOG_LEVEL", "3"); //Only errors
         }
 
         public MulticlassClassificationMetrics GenerateModel(

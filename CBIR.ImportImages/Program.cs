@@ -1,5 +1,6 @@
 ﻿using CBIR.CV;
 using CBIR.Data;
+using CBIR.ML;
 using CBIR.Model;
 using CommandLine;
 using Microsoft.EntityFrameworkCore;
@@ -55,11 +56,12 @@ namespace CBIR.ImportImages
             {
                 x.CaseInsensitiveEnumValues = true;
                 x.HelpWriter = Parser.Default.Settings.HelpWriter;
-            }).ParseArguments<ImportOptions, TestByCategoryOptions, TestByImageOptions, CompareImagesOptions>(args)
+            }).ParseArguments<ImportOptions, TestByCategoryOptions, TestByImageOptions, TestByMLOptions, CompareImagesOptions>(args)
                     .MapResult(
                         (ImportOptions opts) => ImportImages(opts),
                         (TestByCategoryOptions opts) => TestCategory(opts),
                         (TestByImageOptions opts) => TestImage(opts),
+                        (TestByMLOptions opts) => TestImageWithML(opts),
                         (CompareImagesOptions opts) => CompareImages(opts),
                         errs => Task.CompletedTask //Dummy Error
                     );
@@ -92,6 +94,25 @@ namespace CBIR.ImportImages
 
             return Task.CompletedTask;
         }
+
+        private async Task TestImageWithML(TestByMLOptions opts)
+        {
+            options = opts;
+
+            if (!File.Exists(opts.ImageName))
+            {
+                ShowMessage($"File {opts.ImageName} does not exists");
+                return;
+            }
+
+            var imgClassifier = new ImageClassifier();
+            var modelPath = Path.Combine(Path.GetDirectoryName(opts.InceptionPath), "trained-model.zip");
+            await Task.Run(() => imgClassifier.LoadModel(modelPath));
+            
+            var result = imgClassifier.ClassifyImage(opts.ImageName);
+            ShowMessage($"Predicted Category: {result.PredictedLabelValue} Score: {result.Score.Max()}");
+        }
+
 
         private async Task TestImage(TestByImageOptions opts)
         {
@@ -184,15 +205,42 @@ namespace CBIR.ImportImages
                 return;
             }
 
+            ImageClassifier imgClassifier = null;
+            List<ImageData> imgData = null;
+            if (opts.TrainModel) 
+            {
+                imgClassifier = new ImageClassifier();
+                imgData = new List<ImageData>();
+            }
+
             await Task.Run(async () => { 
                 foreach(var folder in Directory.GetDirectories(opts.RootFolder))
                 {
-                    await ProcessFolder(folder);
+                    var importedImages = await ProcessFolder(folder);
+                    if (imgData != null)
+                    {
+                        var root = opts.RootFolder;
+                        if (!Path.EndsInDirectorySeparator(root))
+                            root += Path.DirectorySeparatorChar;
+                        imgData.AddRange(
+                            importedImages.images.Select(x => new ImageData()
+                            {
+                                Label = importedImages.categ,
+                                ImagePath = x.Replace(root, "")
+                            })); ;
+                    }
                 }
             });            
+
+            if (imgClassifier != null)
+            {
+                imgClassifier.GenerateModel(opts.RootFolder, opts.InceptionPath, imgData);
+                var modelPath = Path.Combine(Path.GetDirectoryName(opts.InceptionPath), "trained-model.zip");
+                imgClassifier.SaveModel(modelPath);
+            }
         }
 
-        private async Task ProcessFolder(string folderCategory)
+        private async Task<(string categ, IEnumerable<string> images)> ProcessFolder(string folderCategory)
         {
             var pluralizer = services.GetService<IPluralize>();
             var categoryName = pluralizer.Singularize(
@@ -201,24 +249,28 @@ namespace CBIR.ImportImages
                     .Replace('_', ' ')
                     .ToLower());
             ShowMessage($"Processing folder: {folderCategory} as category {categoryName}...");
+            IEnumerable<string> imageNames = null;
             await Task.Run(async () => {
                 var processed = 0;
                 var timer = new Stopwatch();
                 timer.Start();
-                var imageNames = Directory.EnumerateFiles(Path.Combine(GetOptions<ImportOptions>().RootFolder, folderCategory), "*.jpg");
+                imageNames = Directory.EnumerateFiles(Path.Combine(GetOptions<ImportOptions>().RootFolder, folderCategory), "*.jpg");
                 if (GetOptions<ImportOptions>().ImportByName)
                     imageNames = imageNames.OrderBy(x => x);
                 if (GetOptions<ImportOptions>().MaxImagesPerFolder.HasValue)
                         imageNames = imageNames.Take((int)GetOptions<ImportOptions>().MaxImagesPerFolder);
                 foreach (var imageName in imageNames)
                 {
-                    await ProcessImage(categoryName, imageName);
+                    if (!GetOptions<ImportOptions>().TrainModel)
+                        await ProcessImage(categoryName, imageName);
                     processed++;
                 }
                 timer.Stop();
                 ShowMessage($"\t{processed} images processed in {timer.Elapsed.TotalSeconds} seconds");
             });
+            return (categ: categoryName, images: imageNames);
         }
+
         private async Task ProcessImage(string categoryName, string fileName)
         {
             var dbContext = services.GetService<ImagesDbContext>();
