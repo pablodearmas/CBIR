@@ -17,6 +17,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CBIR.WebApp.Client", "CBIR.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CBIR.WebApp.Shared", "CBIR.WebApp\Shared\CBIR.WebApp.Shared.csproj", "{F9B66901-8AB1-460D-9BDC-3A419AC4A07D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CBIR.ML", "CBIR.ML\CBIR.ML.csproj", "{D8D8223D-73CD-4C44-978E-0A84896BAF60}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{F9B66901-8AB1-460D-9BDC-3A419AC4A07D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9B66901-8AB1-460D-9BDC-3A419AC4A07D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F9B66901-8AB1-460D-9BDC-3A419AC4A07D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D8D8223D-73CD-4C44-978E-0A84896BAF60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8D8223D-73CD-4C44-978E-0A84896BAF60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8D8223D-73CD-4C44-978E-0A84896BAF60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8D8223D-73CD-4C44-978E-0A84896BAF60}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
