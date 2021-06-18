@@ -6,11 +6,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="5.0.3" />
+    <PackageReference Include="SciSharp.TensorFlow.Redist" Version="2.5.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\CBIR.CV\CBIR.CV.csproj" />
     <ProjectReference Include="..\..\CBIR.Data\CBIR.Data.csproj" />
+    <ProjectReference Include="..\..\CBIR.ML\CBIR.ML.csproj" />
     <ProjectReference Include="..\..\CBIR.Model\CBIR.Model.csproj" />
     <ProjectReference Include="..\Client\CBIR.WebApp.Client.csproj" />
     <ProjectReference Include="..\Shared\CBIR.WebApp.Shared.csproj" />
@@ -18,6 +20,12 @@
 
   <ItemGroup>
     <None Update="Images\360008.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Inception\tensorflow_inception_graph.pb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Inception\trained-model.zip">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -1,5 +1,6 @@
 ﻿using CBIR.CV;
 using CBIR.Data;
+using CBIR.ML;
 using CBIR.Model;
 using CBIR.WebApp.Shared;
 using Microsoft.AspNetCore.Hosting;
@@ -318,11 +319,34 @@ namespace CBIR.WebApp.Server.Controllers
             }
         }
 
+        [HttpGet("PredictedCategory")]
+        public async Task<PredictedCategory> GetPredictedCategory(string queryImgName)
+        {
+            if (!System.IO.File.Exists(queryImgName))
+                return null;
+
+            var imgClassifier = new ImageClassifier();
+            var inceptionFolder = Path.Combine(environment.ContentRootPath, "Inception");
+            var modelPath = Path.Combine(inceptionFolder, "trained-model.zip");
+            await Task.Run(() => imgClassifier.LoadModel(modelPath));
+
+            var imagesFolder = Path.Combine(environment.ContentRootPath, "Images");
+            var result = imgClassifier.ClassifyImage(queryImgName);
+
+            return new PredictedCategory()
+            {
+                Label = result.PredictedLabelValue,
+                Score = result.Score.Max()
+            };
+        }
+
         [HttpGet("SampleImages")]
         public IEnumerable<ImageDto> GetSampleImages()
         {
             var imagesFolder = Path.Combine(environment.ContentRootPath, "Images");
-            var result = Directory.EnumerateFiles(imagesFolder).Select(x => new ImageDto() { Filename = x });
+            var result = Directory
+                    .EnumerateFiles(imagesFolder)
+                    .Select(x => new ImageDto() { Filename = $"/images/image?filename={x}" });
             return result;
         }
 

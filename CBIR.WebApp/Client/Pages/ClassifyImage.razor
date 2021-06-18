@@ -1,0 +1,146 @@
+﻿@page "/classifyimage"
+
+@inject HttpClient httpClient
+
+<RadzenTabs @ref="tabs" SelectedIndexChanged="OnTabChanged">
+    <Tabs>
+        <RadzenTabsItem Text="Upload Image">
+            <div class="row">
+                <div class="col-md-9">
+                    <RadzenUpload ChooseText="Select image" Multiple="false"
+                                  Accept="image/*"
+                                  Url=@($"/Images/UploadImageQry")
+                                  Style="margin-bottom: 20px"
+                                  Complete=@OnComplete />
+                    <RadzenImage Path="@uploadedImageUri" Style="width:fit-content;" />
+                </div>
+            </div>
+        </RadzenTabsItem>
+        <RadzenTabsItem Text="From Samples">
+            <RadzenDataList @ref="dataList" WrapItems="true" AllowPaging="true" Data="@images" TItem="CheckedImageDto">
+                <Template Context="image">
+                    <RadzenCard Style="width:300px;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <RadzenCheckBox TValue="bool" Value="@image.Checked" ValueChanged="@(x =>
+                                                                                                     OnSelectImage(x, image))" />
+                                <RadzenImage Path="@image.Filename" Style="width:100%;" />
+                            </div>
+                        </div>
+
+                    </RadzenCard>
+                </Template>
+            </RadzenDataList>
+        </RadzenTabsItem>
+    </Tabs>
+</RadzenTabs>
+
+<br/>
+
+<div class="col-md-3">
+    <RadzenButton Click=@(async x => await OnClassify())>
+        <span class="oi oi-tag" aria-hidden="true"></span>
+    </RadzenButton>
+</div>
+
+<RadzenLabel Text="Classifying..." Style="margin-left: 2px;" @bind-Visible="isClassifying" />
+
+<RadzenCard Style="width:300px;">
+    <div class="row">
+        <div class="col-md-8">
+            <b>Predicted Category:</b>
+            <div>@predictedCateg?.Label</div>
+            <b>Score:</b>
+            <div>@predictedCateg?.Score</div>
+        </div>
+    </div>
+
+</RadzenCard>
+
+@code
+{
+    private bool isClassifying = false;
+
+    private string queryImageUri;
+    private string selectedImageUri;
+    private string uploadedImageUri;
+
+    private CheckedImageDto[] images = new CheckedImageDto[0];
+
+    private PredictedCategory predictedCateg;
+
+    private RadzenDataList<CheckedImageDto> dataList;
+
+    private RadzenTabs tabs;
+
+    public string QueryImageUri
+    {
+        get => queryImageUri;
+        set
+        {
+            queryImageUri = value?.Split("filename=")[1];
+
+            predictedCateg = null;
+        }
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        images = new CheckedImageDto[0];
+
+        images = (await httpClient.GetFromJsonAsync<CheckedImageDto[]>($"Images/SampleImages"))
+                .ToArray();
+    }
+
+    private void OnTabChanged(int index)
+    {
+        QueryImageUri = index == 0 ? uploadedImageUri : selectedImageUri;
+    }
+
+    private Task OnSelectImage(bool state, CheckedImageDto image)
+    {
+        var current = images.FirstOrDefault(x => x.Checked);
+        image.Checked = state;
+        if (state)
+        {
+            if (current != null)
+                current.Checked = false;
+            selectedImageUri = image.Filename;
+        }
+        else
+        {
+            selectedImageUri = "";
+        }
+        QueryImageUri = selectedImageUri;
+        return Task.CompletedTask;
+    }
+
+    private async Task OnClassify()
+    {
+        if (isClassifying || string.IsNullOrEmpty(QueryImageUri))
+            return;
+
+        try
+        {
+            isClassifying = true;
+            predictedCateg = null;
+
+            //TODO: Call API to classify
+            predictedCateg = await httpClient.GetFromJsonAsync<PredictedCategory>($"Images/PredictedCategory?queryImgName={QueryImageUri}");
+        }
+        finally
+        {
+            isClassifying = false;
+        }
+    }
+
+    private Task OnImport()
+    {
+        return Task.CompletedTask;
+    }
+
+    private void OnComplete(Radzen.UploadCompleteEventArgs args)
+    {
+        uploadedImageUri = args.RawResponse;
+        QueryImageUri = uploadedImageUri;
+    }
+}
