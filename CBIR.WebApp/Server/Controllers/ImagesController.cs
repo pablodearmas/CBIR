@@ -34,7 +34,7 @@ namespace CBIR.WebApp.Server.Controllers
         }
 
         [HttpGet("ByKey")]
-        public IEnumerable<ImageDto> GetByKey(string keys, bool strict)
+        public IEnumerable<RelevantImageDto> GetByKey(string keys, bool strict)
         {
             if (!string.IsNullOrEmpty(keys))
             {
@@ -45,10 +45,10 @@ namespace CBIR.WebApp.Server.Controllers
                         if (strict && x.Name == c || !strict && x.Name.Contains(c))
                             foreach (var i in x.Images)
                             {
-                                yield return new ImageDto()
+                                yield return new RelevantImageDto()
                                 {
                                     Category = x.Name,
-                                    ExternalFile = $"/images/image?filename={i.ExternalFile}",
+                                    Filename = $"/images/image?filename={i.ExternalFile}",
                                     RelevanceText = "100%"
                                 };
                             }
@@ -56,7 +56,7 @@ namespace CBIR.WebApp.Server.Controllers
         }
 
         [HttpGet("ByImage")]
-        public IEnumerable<ImageDto> GetByImage(string queryImgName, bool strict, ImageComparisonMode mode, double threshold, ImageKeypointsDetector detector, int max)
+        public IEnumerable<RelevantImageDto> GetByImage(string queryImgName, bool strict, ImageComparisonMode mode, double threshold, ImageKeypointsDetector detector, int max)
         {
             if (!string.IsNullOrEmpty(queryImgName))
             {
@@ -92,10 +92,10 @@ namespace CBIR.WebApp.Server.Controllers
                                         relevanceText = $"{relevance:0.00}% (Color Moment)";
                                     }
                                             
-                                    yield return new ImageDto()
+                                    yield return new RelevantImageDto()
                                     {
                                         Category = img.Categories.First().Name,
-                                        ExternalFile = $"/images/image?filename={img.ExternalFile}",
+                                        Filename = $"/images/image?filename={img.ExternalFile}",
                                         Relevance = relevance,
                                         RelevanceText = relevanceText
                                     };
@@ -114,10 +114,10 @@ namespace CBIR.WebApp.Server.Controllers
                         var counter = 0;
                         foreach (var img in images)
                         {
-                            yield return new ImageDto()
+                            yield return new RelevantImageDto()
                             {
                                 Category = img.Categories.First().Name,
-                                ExternalFile = $"/images/image?filename={img.ExternalFile}",
+                                Filename = $"/images/image?filename={img.ExternalFile}",
                                 Relevance = 100,
                                 RelevanceText = "100%"
                             };
@@ -143,10 +143,10 @@ namespace CBIR.WebApp.Server.Controllers
                             {
                                 if (dist == 0)
                                 {
-                                    yield return new ImageDto()
+                                    yield return new RelevantImageDto()
                                     {
                                         Category = img.Categories.First().Name,
-                                        ExternalFile = $"/images/image?filename={img.ExternalFile}",
+                                        Filename = $"/images/image?filename={img.ExternalFile}",
                                         Relevance = 100,
                                         RelevanceText = $"100%"
                                     };
@@ -170,10 +170,10 @@ namespace CBIR.WebApp.Server.Controllers
                                         relevanceText = $"{relevance:0.00}%";
                                     }
 
-                                    yield return new ImageDto()
+                                    yield return new RelevantImageDto()
                                     {
                                         Category = img.Categories.First().Name,
-                                        ExternalFile = $"/images/image?filename={img.ExternalFile}",
+                                        Filename = $"/images/image?filename={img.ExternalFile}",
                                         Relevance = relevance,
                                         RelevanceText = relevanceText
                                     };
@@ -214,7 +214,7 @@ namespace CBIR.WebApp.Server.Controllers
         }
 
         [HttpPost("Import")]
-        public async Task<IActionResult> ImportImage([FromBody] ImportedImageDto imageDto)
+        public async Task<IActionResult> ImportImage([FromBody] CategorizedImageDto imageDto)
         {
             var fileName = imageDto.Filename;
             var categoryName = imageDto.Category;
@@ -317,5 +317,20 @@ namespace CBIR.WebApp.Server.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        [HttpGet("SampleImages")]
+        public IEnumerable<ImageDto> GetSampleImages()
+        {
+            var imagesFolder = Path.Combine(environment.ContentRootPath, "Images");
+            var result = Directory.EnumerateFiles(imagesFolder).Select(x => new ImageDto() { Filename = x });
+            return result;
+        }
+
+        [HttpGet("About")]
+        public string GetAbout()
+        {
+            return "CBIR Images Controller - Copyright (C) Pablo Antonio de Armas Suárez - C511";
+        }
+
     }
 }

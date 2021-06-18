@@ -46,7 +46,7 @@
 
 <RadzenLabel Text="Searching..." Style="margin-left: 2px;" @bind-Visible="isSearching"/>
 
-<RadzenDataList @ref="dataList" WrapItems="true" AllowPaging="true" Data="@images" TItem="ImageDto">
+<RadzenDataList @ref="dataList" WrapItems="true" AllowPaging="true" Data="@images" TItem="RelevantImageDto">
     <Template Context="image">
         <RadzenCard Style="width:300px;">
             <div class="row">
@@ -58,7 +58,7 @@
                     <b>Relevance:</b>
                     <div>@image.RelevanceText</div>
                     <br />
-                    <RadzenImage Path="@image.ExternalFile" Style="width:100%;" />
+                    <RadzenImage Path="@image.Filename" Style="width:100%;" />
                 </div>
             </div>
 
@@ -97,9 +97,9 @@
                 Value = x
             });
 
-    private ImageDto[] images = new ImageDto[0];
+    private RelevantImageDto[] images = new RelevantImageDto[0];
 
-    private RadzenDataList<ImageDto> dataList;
+    private RadzenDataList<RelevantImageDto> dataList;
 
     private async Task OnSearch()
     {
@@ -108,7 +108,7 @@
 
         if (!string.IsNullOrEmpty(queryImageUri))
         {
-            images = new ImageDto[0];
+            images = new RelevantImageDto[0];
             await dataList.Reload();
 
             try
@@ -116,7 +116,7 @@
                 isSearching = true;
 
                 var filename = queryImageUri.Split('=')[1];
-                images = (await httpClient.GetFromJsonAsync<ImageDto[]>($"Images/ByImage?queryImgName={filename}&strict={strict}&mode={mode}&threshold={threshold}&detector={detector}&max={maxResults}"))
+                images = (await httpClient.GetFromJsonAsync<RelevantImageDto[]>($"Images/ByImage?queryImgName={filename}&strict={strict}&mode={mode}&threshold={threshold}&detector={detector}&max={maxResults}"))
                         .OrderByDescending(x => x.Relevance)
                         .ToArray();
             }
@@ -139,7 +139,7 @@
                 .Select(x => x.Category)
                 .Distinct()
                 .Aggregate((result, item) => result += $", {item}");
-            var content = JsonContent.Create(new ImportedImageDto()
+            var content = JsonContent.Create(new CategorizedImageDto()
             {
                 Filename = filename,
                 Category = categories

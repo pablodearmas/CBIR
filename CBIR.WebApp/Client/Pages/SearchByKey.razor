@@ -16,7 +16,7 @@
 </dic>
 
 
-<RadzenDataList @ref="dataList" WrapItems="true" AllowPaging="true" Data="@images" TItem="ImageDto">
+<RadzenDataList @ref="dataList" WrapItems="true" AllowPaging="true" Data="@images" TItem="RelevantImageDto">
     <Template Context="image">
         <RadzenCard Style="width:300px;">
             <div class="row">
@@ -26,7 +26,7 @@
                     <div>Relevance:</div>
                     <b>@image.RelevanceText</b>
                     <br />
-                    <RadzenImage Path="@image.ExternalFile" Style="width:300px;" />
+                    <RadzenImage Path="@image.Filename" Style="width:300px;" />
                 </div>
             </div>
 
@@ -38,18 +38,18 @@
 {
     private string keys;
     private bool strict = false;
-    private ImageDto[] images = new ImageDto[0];
+    private RelevantImageDto[] images = new RelevantImageDto[0];
 
-    private RadzenDataList<ImageDto> dataList;
+    private RadzenDataList<RelevantImageDto> dataList;
 
     private async Task OnSearch()
     {
         if (!string.IsNullOrEmpty(keys))
         {
-            images = new ImageDto[0];
+            images = new RelevantImageDto[0];
             await dataList.Reload();
 
-            images = await httpClient.GetFromJsonAsync<ImageDto[]>($"Images/ByKey?keys={keys}&strict={strict}");
+            images = await httpClient.GetFromJsonAsync<RelevantImageDto[]>($"Images/ByKey?keys={keys}&strict={strict}");
             await dataList.FirstPage();
         }
     }
