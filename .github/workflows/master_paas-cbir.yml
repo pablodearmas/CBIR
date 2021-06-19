@@ -52,6 +52,6 @@ jobs:
       uses: azure/webapps-deploy@v2
       with:
         app-name: 'paas-cbir'
-        slot-name: 'production'
+        slot-name: 
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_e39f912a5df84d7a948b941c6e8e28f1 }}
         package: .
