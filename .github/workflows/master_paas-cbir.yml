@@ -34,6 +34,6 @@ jobs:
       with:
         app-name: paas-cbir
         slot-name: Production
-        publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_932A015DA46F449CAB0234BB3D9F5CF2 }}
+        publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_209305453ED5435EB4BD0705A2A8FEFD }}
         package: ${{env.DOTNET_ROOT}}/myapp
 
