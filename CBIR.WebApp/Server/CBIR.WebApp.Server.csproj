@@ -5,8 +5,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Images\**" />
+    <Compile Remove="Inception\**" />
+    <Content Remove="Images\**" />
+    <Content Remove="Inception\**" />
+    <EmbeddedResource Remove="Images\**" />
+    <EmbeddedResource Remove="Inception\**" />
+    <None Remove="Images\**" />
+    <None Remove="Inception\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="5.0.3" />
-    <PackageReference Include="SciSharp.TensorFlow.Redist" Version="2.5.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -16,18 +26,6 @@
     <ProjectReference Include="..\..\CBIR.Model\CBIR.Model.csproj" />
     <ProjectReference Include="..\Client\CBIR.WebApp.Client.csproj" />
     <ProjectReference Include="..\Shared\CBIR.WebApp.Shared.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Images\360008.jpg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Inception\tensorflow_inception_graph.pb">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Inception\trained-model.zip">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 
