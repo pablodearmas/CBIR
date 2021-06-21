@@ -329,15 +329,25 @@ namespace CBIR.WebApp.Server.Controllers
             var inceptionFolder = Path.Combine(environment.ContentRootPath, "Inception");
             var modelPath = Path.Combine(inceptionFolder, "trained-model.zip");
 
+            try
+            {
+                await Task.Run(() => { 
+                    imgClassifier.LoadModel(modelPath);
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"LoadModel => {GetMessage(ex)}");
+            }
+
             ImagePrediction prediction = null;
             try
             {
-                await Task.Run(() => imgClassifier.LoadModel(modelPath));
                 prediction = imgClassifier.ClassifyImage(queryImgName);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.InnerException != null ? ex.InnerException.Message : ex.Message);
+                return StatusCode(500, $"ClassifyImage => {GetMessage(ex)}");
             }
 
             return new JsonResult(new PredictedCategory()
@@ -345,6 +355,14 @@ namespace CBIR.WebApp.Server.Controllers
                 Label = prediction.PredictedLabelValue,
                 Score = prediction.Score.Max()
             });
+        }
+
+        private string GetMessage(Exception ex)
+        {
+            var outterEx = ex;
+            while (ex.InnerException != null)
+                ex = ex.InnerException;
+            return $"{outterEx.GetType().Name}: {ex.Message}";
         }
 
         [HttpGet("SampleImages")]
