@@ -320,7 +320,7 @@ namespace CBIR.WebApp.Server.Controllers
         }
 
         [HttpGet("PredictedCategory")]
-        public async Task<PredictedCategory> GetPredictedCategory(string queryImgName)
+        public async Task<ActionResult> GetPredictedCategory(string queryImgName)
         {
             if (!System.IO.File.Exists(queryImgName))
                 return null;
@@ -328,16 +328,23 @@ namespace CBIR.WebApp.Server.Controllers
             var imgClassifier = new ImageClassifier();
             var inceptionFolder = Path.Combine(environment.ContentRootPath, "Inception");
             var modelPath = Path.Combine(inceptionFolder, "trained-model.zip");
-            await Task.Run(() => imgClassifier.LoadModel(modelPath));
 
-            var imagesFolder = Path.Combine(environment.ContentRootPath, "Images");
-            var result = imgClassifier.ClassifyImage(queryImgName);
-
-            return new PredictedCategory()
+            ImagePrediction prediction = null;
+            try
             {
-                Label = result.PredictedLabelValue,
-                Score = result.Score.Max()
-            };
+                await Task.Run(() => imgClassifier.LoadModel(modelPath));
+                prediction = imgClassifier.ClassifyImage(queryImgName);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.InnerException != null ? ex.InnerException.Message : ex.Message);
+            }
+
+            return new JsonResult(new PredictedCategory()
+            {
+                Label = prediction.PredictedLabelValue,
+                Score = prediction.Score.Max()
+            });
         }
 
         [HttpGet("SampleImages")]
