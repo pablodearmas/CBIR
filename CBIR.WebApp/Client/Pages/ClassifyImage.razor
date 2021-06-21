@@ -12,7 +12,7 @@
                                   Url=@($"/Images/UploadImageQry")
                                   Style="margin-bottom: 20px"
                                   Complete=@OnComplete />
-                    <RadzenImage Path="@uploadedImageUri" Style="width:fit-content;" />
+                    <RadzenImage Path="@uploadedImageUri" Style="width:fit-content; max-width:300px; max-height:300px" />
                 </div>
             </div>
         </RadzenTabsItem>
@@ -24,7 +24,7 @@
                             <div class="col-md-6">
                                 <RadzenCheckBox TValue="bool" Value="@image.Checked" ValueChanged="@(x =>
                                                                                                      OnSelectImage(x, image))" />
-                                <RadzenImage Path="@image.Filename" Style="width:100%;" />
+                                <RadzenImage Path="@image.Filename" Style="width: 100%;" />
                             </div>
                         </div>
 
