@@ -61,7 +61,7 @@ namespace CBIR.WebApp.Server.Controllers
         {
             if (!string.IsNullOrEmpty(queryImgName))
             {
-                var queryFeatures = new ImageFeatures(queryImgName);
+                var queryFeatures = new ImageFeatures(queryImgName, GetDescriptorType(detector));
 
                 if (mode == ImageComparisonMode.Hashes)
                 {
