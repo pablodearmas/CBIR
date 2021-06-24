@@ -17,13 +17,15 @@ namespace CBIR.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(2048)
                 .HasComment("Perceptual Hash");
-            builder.HasIndex(x => x.Hash1);
+            builder.HasIndex(x => x.Hash1)
+                .IsUnique();
 
             builder.Property(x => x.Hash2)
                 .IsRequired()
                 .HasMaxLength(2048)
                 .HasComment("Color Moment Hash");
-            builder.HasIndex(x => x.Hash2);
+            builder.HasIndex(x => x.Hash2)
+                .IsUnique();
 
             builder.Property(x => x.ExternalFile)
                 .IsRequired(false)

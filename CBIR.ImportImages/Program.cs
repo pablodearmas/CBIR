@@ -205,49 +205,59 @@ namespace CBIR.ImportImages
                 return;
             }
 
-            ImageClassifier imgClassifier = null;
-            List<ImageData> imgData = null;
-            if (opts.TrainModel) 
-            {
-                imgClassifier = new ImageClassifier();
-                imgData = new List<ImageData>();
-            }
+            var imgClassifier = opts.TrainModel ? new ImageClassifier() : null;
+            var imgData = new List<ImageData>();
 
+            var root = opts.RootFolder;
+            if (!Path.EndsInDirectorySeparator(root))
+                root += Path.DirectorySeparatorChar;
+
+            var timer = new Stopwatch();
+            timer.Start();
             await Task.Run(async () => { 
                 foreach(var folder in Directory.GetDirectories(opts.RootFolder))
                 {
                     var importedImages = await ProcessFolder(folder);
-                    if (imgData != null)
-                    {
-                        var root = opts.RootFolder;
-                        if (!Path.EndsInDirectorySeparator(root))
-                            root += Path.DirectorySeparatorChar;
-                        imgData.AddRange(
-                            importedImages.images.Select(x => new ImageData()
-                            {
-                                Label = importedImages.categ,
-                                ImagePath = x.Replace(root, "")
-                            })); ;
-                    }
+                    imgData.AddRange(
+                        importedImages.images.Select(x => new ImageData()
+                        {
+                            Label = importedImages.categ,
+                            ImagePath = x.Replace(root, "")
+                        })); ;
                 }
-            });            
+            });
+            timer.Stop();
+            ShowMessage($"{imgData.Count} images were imported in {timer.Elapsed.TotalSeconds} seconds");
 
             if (imgClassifier != null)
             {
+                timer.Start();
                 imgClassifier.GenerateModel(opts.RootFolder, opts.InceptionPath, imgData);
                 var modelPath = Path.Combine(Path.GetDirectoryName(opts.InceptionPath), "trained-model.zip");
                 imgClassifier.SaveModel(modelPath);
+                timer.Stop();
+                ShowMessage($"Model was trained with {imgData.Count} images in {timer.Elapsed.TotalSeconds} seconds");
             }
         }
 
         private async Task<(string categ, IEnumerable<string> images)> ProcessFolder(string folderCategory)
         {
+            var dbContext = services.GetService<ImagesDbContext>();
+
             var pluralizer = services.GetService<IPluralize>();
             var categoryName = pluralizer.Singularize(
                 Path.GetFileName(folderCategory)
                     .Replace('-', ' ')
                     .Replace('_', ' ')
                     .ToLower());
+
+            var category = await dbContext.Categories.SingleOrDefaultAsync(x => x.Name == categoryName);
+            if (category == null)
+            {
+                category = new Category() { Name = categoryName, Images = new List<Image>() };
+                await dbContext.AddAsync(category);
+            }
+
             ShowMessage($"Processing folder: {folderCategory} as category {categoryName}...");
             IEnumerable<string> imageNames = null;
             await Task.Run(async () => {
@@ -262,7 +272,7 @@ namespace CBIR.ImportImages
                 foreach (var imageName in imageNames)
                 {
                     if (!GetOptions<ImportOptions>().TrainModel)
-                        await ProcessImage(categoryName, imageName);
+                        await ProcessImage(category, imageName);
                     processed++;
                 }
                 timer.Stop();
@@ -271,7 +281,7 @@ namespace CBIR.ImportImages
             return (categ: categoryName, images: imageNames);
         }
 
-        private async Task ProcessImage(string categoryName, string fileName)
+        private async Task ProcessImage(Category category, string fileName)
         {
             var dbContext = services.GetService<ImagesDbContext>();
 
@@ -280,7 +290,7 @@ namespace CBIR.ImportImages
                     .SingleOrDefaultAsync(x => x.ExternalFile == fileName);
             if (alreadyInDatabase != null)
             {
-                if (alreadyInDatabase.Categories.Any(x => x.Name == categoryName))
+                if (alreadyInDatabase.Categories.Any(x => x.Name == category.Name))
                 {
                     ShowMessage($"\tImage {fileName} is already on the database");
                     return;
@@ -288,7 +298,6 @@ namespace CBIR.ImportImages
             }
 
             var features = new ImageFeatures(fileName);
-
 
             if (alreadyInDatabase == null)
             {
@@ -298,7 +307,7 @@ namespace CBIR.ImportImages
                 if (alreadyInDatabase != null)
                 {
                     ShowMessage($"\tImage {fileName} is already on the database (phash): {alreadyInDatabase.ExternalFile}");
-                    if (alreadyInDatabase.Categories.Any(x => x.Name == categoryName))
+                    if (alreadyInDatabase.Categories.Any(x => x.Name == category.Name))
                         return;
                 }
             }
@@ -311,14 +320,10 @@ namespace CBIR.ImportImages
                 if (alreadyInDatabase != null)
                 {
                     ShowMessage($"\tImage {fileName} is already on the database (cmhash): {alreadyInDatabase.ExternalFile}");
-                    if (alreadyInDatabase.Categories.Any(x => x.Name == categoryName))
+                    if (alreadyInDatabase.Categories.Any(x => x.Name == category.Name))
                         return;
                 }
             }
-
-            var category = await  dbContext.Categories.SingleOrDefaultAsync(x => x.Name == categoryName);
-            if (category == null)
-                category = new Category() { Name = categoryName, Images = new List<Image>() };
 
             var image = alreadyInDatabase ?? new Image()
             {
@@ -329,15 +334,10 @@ namespace CBIR.ImportImages
             };
             image.Categories.Add(category);
 
-            if (category.Id != Guid.Empty)
-                dbContext.Update(category);
-            else
-                await dbContext.AddAsync(category);
-
             if (image.Id != Guid.Empty)
                 dbContext.Update(image);
             else
-                dbContext.Add(image);
+                await dbContext.AddAsync(image);
 
             await dbContext.SaveChangesAsync();
         }

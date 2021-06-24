@@ -2,7 +2,7 @@
   "profiles": {
     "CBIR.ImportImages - import": {
       "commandName": "Project",
-      "commandLineArgs": "import --path D:\\Works\\Pablo\\CBIR\\Datasets\\Caltech-256  -m --inception-path D:\\Works\\Pablo\\CBIR\\Inception\\tensorflow_inception_graph.pb"
+      "commandLineArgs": "import --path D:\\Works\\Pablo\\CBIR\\Datasets\\Caltech-256-8 "
     },
     "CBIR.ImportImages - test by image": {
       "commandName": "Project",
@@ -23,6 +23,10 @@
     "CBIR.ImportImages - test by ML": {
       "commandName": "Project",
       "commandLineArgs": "test-ml --img D:\\Works\\Pablo\\CBIR\\Datasets\\CorelDB\\obj_aviation\\360062.jpg --inception-path D:\\Works\\Pablo\\CBIR\\Inception\\tensorflow_inception_graph.pb"
+    },
+    "CBIR.ImportImages - import (create ML model))": {
+      "commandName": "Project",
+      "commandLineArgs": "import --path D:\\Works\\Pablo\\CBIR\\Datasets\\Caltech-256  -m --inception-path D:\\Works\\Pablo\\CBIR\\Inception\\tensorflow_inception_graph.pb"
     }
   }
 }
