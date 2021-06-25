@@ -5,6 +5,7 @@ using Emgu.CV.ImgHash;
 using Emgu.CV.Util;
 using System;
 using System.Text;
+using System.Diagnostics;
 
 namespace CBIR.CV
 {
@@ -137,31 +138,36 @@ namespace CBIR.CV
 
         public string ColorMomentHash => GetStringHash(cmHash);
 
-        public ImageFeatures(string externalFile, ImageDescriptorType imgDesc = ImageDescriptorType.Default)
+        public ImageFeatures(string externalFile, ImageDescriptorType imgDesc = ImageDescriptorType.Default, bool calculateHashes = true)
         {
             imgDescType = imgDesc;
 
-            var img = CvInvoke.Imread(externalFile, Emgu.CV.CvEnum.ImreadModes.AnyColor);
-
-            pHash = new Mat();
-            using (var hashAlgorithm = new PHash())
+            using (var img = CvInvoke.Imread(externalFile, Emgu.CV.CvEnum.ImreadModes.AnyColor))
             {
-                hashAlgorithm.Compute(img, pHash);
-            }
+                if (calculateHashes)
+                {
+                    pHash = new Mat();
+                    using (var hashAlgorithm = new PHash())
+                    {
+                        hashAlgorithm.Compute(img, pHash);
+                    }
 
-            cmHash = new Mat();
-            using (var hashAlgorithm = new ColorMomentHash())
-            {
-                hashAlgorithm.Compute(img, cmHash);
-            }
+                    cmHash = new Mat();
+                    using (var hashAlgorithm = new ColorMomentHash())
+                    {
+                        hashAlgorithm.Compute(img, cmHash);
+                    }
 
-            descriptor = new Mat();
-            using (var keyPointsDetector = GetKeyPointsDetector(imgDescType))
-            using (var descriptorDetector = GetDescriptorDetector(keyPointsDetector))
-            using (var keyPoints = new VectorOfKeyPoint(keyPointsDetector.Detect(img, null)))
-            {
-                distType = GetDistanceType(descriptorDetector);
-                descriptorDetector.Compute(img, keyPoints, descriptor);
+                }
+
+                descriptor = new Mat();
+                using (var keyPointsDetector = GetKeyPointsDetector(imgDescType))
+                using (var descriptorDetector = GetDescriptorDetector(keyPointsDetector))
+                using (var keyPoints = new VectorOfKeyPoint(keyPointsDetector.Detect(img, null)))
+                {
+                    distType = GetDistanceType(descriptorDetector);
+                    descriptorDetector.Compute(img, keyPoints, descriptor);
+                }
             }
         }
 
@@ -240,12 +246,10 @@ namespace CBIR.CV
             {
                 if (disposing)
                 {
-                    pHash.Dispose();
-                    cmHash.Dispose();
-                    if (descriptor != null)
-                        descriptor.Dispose();
-                    if (matcher != null)
-                        matcher.Dispose();
+                    pHash?.Dispose();
+                    cmHash?.Dispose();
+                    descriptor?.Dispose();
+                    matcher?.Dispose();
                 }
 
                 disposedValue = true;

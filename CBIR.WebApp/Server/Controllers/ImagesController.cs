@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -57,8 +58,10 @@ namespace CBIR.WebApp.Server.Controllers
         }
 
         [HttpGet("ByImage")]
-        public IEnumerable<RelevantImageDto> GetByImage(string queryImgName, bool strict, ImageComparisonMode mode, double threshold, ImageKeypointsDetector detector, int max)
+        public async Task<IEnumerable<RelevantImageDto>> GetByImage(string queryImgName, bool strict, ImageComparisonMode mode, double threshold, ImageKeypointsDetector detector, int max)
         {
+            var result = new List<RelevantImageDto>();
+
             if (!string.IsNullOrEmpty(queryImgName))
             {
                 var queryFeatures = new ImageFeatures(queryImgName, GetDescriptorType(detector));
@@ -70,7 +73,7 @@ namespace CBIR.WebApp.Server.Controllers
                         var images = dbContext.Images.Include(x => x.Categories);
 
                         var counter = 0;
-                        foreach (var img in images)
+                        await foreach (var img in images.AsAsyncEnumerable())
                         {
                             using (var imgFeatures = new ImageFeatures(img.Hash1, img.Hash2))
                             {
@@ -79,7 +82,7 @@ namespace CBIR.WebApp.Server.Controllers
                                 {
                                     var relevance1 = (threshold - pdist) / threshold;
                                     var relevance2 = (threshold - cmdist) / threshold;
-                                    
+
                                     double relevance;
                                     string relevanceText;
                                     if (relevance1 >= relevance2)
@@ -92,42 +95,33 @@ namespace CBIR.WebApp.Server.Controllers
                                         relevance = relevance2 * 100;
                                         relevanceText = $"{relevance:0.00}% (Color Moment)";
                                     }
-                                            
-                                    yield return new RelevantImageDto()
+
+                                    result.Add(new RelevantImageDto()
                                     {
                                         Category = img.Categories.First().Name,
                                         Filename = $"/images/image?filename={img.ExternalFile}",
                                         Relevance = relevance,
                                         RelevanceText = relevanceText
-                                    };
+                                    });
                                     ++counter;
                                 }
                             }
-                            if (max > 0 && counter >= max)
-                                yield break;
                         }
                     }
                     else
                     {
-                        var images = dbContext.Images
+                        var relevantImages = dbContext.Images
                                 .Include(x => x.Categories)
-                                .Where(x => x.Hash1 == queryFeatures.PerceptualHash || x.Hash2 == queryFeatures.ColorMomentHash);
-                        var counter = 0;
-                        foreach (var img in images)
-                        {
-                            yield return new RelevantImageDto()
-                            {
-                                Category = img.Categories.First().Name,
-                                Filename = $"/images/image?filename={img.ExternalFile}",
-                                Relevance = 100,
-                                RelevanceText = "100%"
-                            };
-                            ++counter;
-                            if (max > 0 && counter >= max)
-                                yield break;
-                        }
+                                .Where(x => x.Hash1 == queryFeatures.PerceptualHash || x.Hash2 == queryFeatures.ColorMomentHash)
+                                .Take(max)
+                                .Select(img => new RelevantImageDto() {
+                                    Category = img.Categories.First().Name,
+                                    Filename = $"/images/image?filename={img.ExternalFile}",
+                                    Relevance = 100,
+                                    RelevanceText = "100%"
+                                });
+                        result.AddRange(relevantImages);
                     }
-
                 }
                 else
                 {
@@ -135,22 +129,22 @@ namespace CBIR.WebApp.Server.Controllers
                             .Include(x => x.Categories);
 
                     var counter = 0;
-                    foreach (var img in images)
+                    await foreach (var img in images.AsAsyncEnumerable())
                     {
-                        using (var imgFeatures = new ImageFeatures(img.ExternalFile, GetDescriptorType(detector)))
+                        using (var imgFeatures = new ImageFeatures(img.ExternalFile, GetDescriptorType(detector), false))
                         {
                             var dist = queryFeatures.GetDescriptorDistance(imgFeatures);
                             if (strict)
                             {
                                 if (dist == 0)
                                 {
-                                    yield return new RelevantImageDto()
+                                    result.Add(new RelevantImageDto()
                                     {
                                         Category = img.Categories.First().Name,
                                         Filename = $"/images/image?filename={img.ExternalFile}",
                                         Relevance = 100,
                                         RelevanceText = $"100%"
-                                    };
+                                    });
                                     ++counter;
                                 }
                             }
@@ -171,22 +165,26 @@ namespace CBIR.WebApp.Server.Controllers
                                         relevanceText = $"{relevance:0.00}%";
                                     }
 
-                                    yield return new RelevantImageDto()
+                                    result.Add(new RelevantImageDto()
                                     {
                                         Category = img.Categories.First().Name,
                                         Filename = $"/images/image?filename={img.ExternalFile}",
                                         Relevance = relevance,
                                         RelevanceText = relevanceText
-                                    };
+                                    });
                                     ++counter;
                                 }
                             }
                         }
-                        if (max > 0 && counter >= max)
-                            yield break;
                     }
                 }
             }
+
+            var sortedResult = result.OrderByDescending(x => x.Relevance).AsEnumerable();
+            if (max > 0)
+                sortedResult = sortedResult.Take(max);
+
+            return sortedResult;
         }
 
         private ImageDescriptorType GetDescriptorType(ImageKeypointsDetector detector)
