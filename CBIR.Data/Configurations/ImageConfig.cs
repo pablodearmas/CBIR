@@ -34,6 +34,9 @@ namespace CBIR.Data.Configurations
 
             builder.Property(x => x.Data)
                 .IsRequired(false);
+
+            builder.HasMany(x => x.Descriptors)
+                .WithOne(x => x.Image);
         }
     }
 }

@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CBIR.Data.Migrations
 {
     [DbContext(typeof(ImagesDbContext))]
-    [Migration("20210625035433_AddImageDescriptor")]
+    [Migration("20210625041437_AddImageDescriptor")]
     partial class AddImageDescriptor
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -111,7 +111,7 @@ namespace CBIR.Data.Migrations
 
                     b.HasIndex("ImageId");
 
-                    b.ToTable("ImageDescriptor");
+                    b.ToTable("ImageDescriptors");
                 });
 
             modelBuilder.Entity("CategoryImage", b =>

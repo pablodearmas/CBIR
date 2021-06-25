@@ -18,6 +18,8 @@ namespace CBIR.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Ignore<MatrixDescriptor>();
+
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         }
     }

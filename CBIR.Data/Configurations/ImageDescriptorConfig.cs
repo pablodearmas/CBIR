@@ -11,6 +11,8 @@ namespace CBIR.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<ImageDescriptor> builder)
         {
+            builder.ToTable("ImageDescriptors");
+
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.ImageId)
@@ -31,6 +33,13 @@ namespace CBIR.Data.Configurations
 
             builder.Property(x => x.Data)
                 .IsRequired(false);
+
+            builder.HasOne(x => x.Image)
+                .WithMany(x => x.Descriptors)
+                .IsRequired()
+                .HasForeignKey(x => x.ImageId)
+                .OnDelete(DeleteBehavior.Cascade);
+
         }
     }
 }

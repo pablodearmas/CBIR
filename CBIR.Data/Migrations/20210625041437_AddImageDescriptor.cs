@@ -8,22 +8,22 @@ namespace CBIR.Data.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "ImageDescriptor",
+                name: "ImageDescriptors",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     ImageId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Type = table.Column<int>(type: "int", nullable: false),
                     Rows = table.Column<int>(type: "int", nullable: false),
                     Cols = table.Column<int>(type: "int", nullable: false),
                     Depth = table.Column<int>(type: "int", nullable: false),
-                    Type = table.Column<int>(type: "int", nullable: false),
                     Data = table.Column<byte[]>(type: "varbinary(max)", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ImageDescriptor", x => x.Id);
+                    table.PrimaryKey("PK_ImageDescriptors", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ImageDescriptor_Images_ImageId",
+                        name: "FK_ImageDescriptors_Images_ImageId",
                         column: x => x.ImageId,
                         principalTable: "Images",
                         principalColumn: "Id",
@@ -31,15 +31,15 @@ namespace CBIR.Data.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_ImageDescriptor_ImageId",
-                table: "ImageDescriptor",
+                name: "IX_ImageDescriptors_ImageId",
+                table: "ImageDescriptors",
                 column: "ImageId");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "ImageDescriptor");
+                name: "ImageDescriptors");
         }
     }
 }

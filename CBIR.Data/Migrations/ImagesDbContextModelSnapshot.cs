@@ -109,7 +109,7 @@ namespace CBIR.Data.Migrations
 
                     b.HasIndex("ImageId");
 
-                    b.ToTable("ImageDescriptor");
+                    b.ToTable("ImageDescriptors");
                 });
 
             modelBuilder.Entity("CategoryImage", b =>
