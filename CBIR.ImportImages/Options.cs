@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using CBIR.CV;
+using CBIR.Model;
 using CommandLine;
 
 namespace CBIR.ImportImages

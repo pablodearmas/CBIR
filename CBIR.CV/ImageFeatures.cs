@@ -6,26 +6,10 @@ using Emgu.CV.Util;
 using System;
 using System.Text;
 using System.Diagnostics;
+using CBIR.Model;
 
 namespace CBIR.CV
 {
-    public enum ImageDescriptorType
-    {
-        Default = -1,
-        //Detect Keypoints and Descriptors
-        Brisk,
-        Orb,
-        Sift,
-        //Only detect Descriptors
-        Brief,
-        Latch,
-        Lucid,
-        Freak,
-        //Only detect KeyPoints
-        Fast,  
-        SimpleBlob
-    }
-
     public class ImageFeatures : IDisposable
     {
         //Hashes

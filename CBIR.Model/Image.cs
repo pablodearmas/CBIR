@@ -16,5 +16,7 @@ namespace CBIR.Model
         public byte[] Data { get; set; }
 
         public virtual ICollection<Category> Categories { get; set; }
+
+        public virtual ICollection<ImageDescriptor> Descriptors { get; set; }
     }
 }

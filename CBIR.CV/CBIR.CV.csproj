@@ -9,4 +9,8 @@
     <PackageReference Include="Emgu.CV.runtime.windows" Version="4.5.1.4349" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CBIR.Model\CBIR.Model.csproj" />
+  </ItemGroup>
+
 </Project>
