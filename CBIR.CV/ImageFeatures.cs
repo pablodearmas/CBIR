@@ -7,6 +7,8 @@ using System;
 using System.Text;
 using System.Diagnostics;
 using CBIR.Model;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace CBIR.CV
 {
@@ -21,10 +23,11 @@ namespace CBIR.CV
         private DistanceType distType;
         private Mat descriptor;
         private DescriptorMatcher matcher;
+        private IDictionary<ImageDescriptorType, Mat> allDescriptors;
 
         private bool disposedValue;
 
-        public static string GetStringHash(Mat hash)
+        public static string GetString(Mat hash)
         {
             var bytes = hash.GetRawData(0);
 
@@ -35,7 +38,7 @@ namespace CBIR.CV
             return result.ToString();
         }
 
-        public static Mat GetMatHash(Emgu.CV.CvEnum.DepthType depthType, string hash)
+        public static Mat GetMatrix(Emgu.CV.CvEnum.DepthType depthType, string hash)
         {
             var bytes = new byte[hash.Length / 2];
 
@@ -52,7 +55,39 @@ namespace CBIR.CV
             return result;
         }
 
-        private Feature2D GetKeyPointsDetector(ImageDescriptorType descType)
+        private static Mat GetMatrix(MatrixDescriptor desc)
+        {
+            var result = new Mat(desc.Rows, desc.Cols, (Emgu.CV.CvEnum.DepthType)desc.Depth, 1);
+            result.SetTo(desc.Data);
+            return result;
+        }
+
+        private static MatrixDescriptor GetDescriptor(Mat m)
+        {
+            try
+            {
+                var dataLength = m.Rows * m.Cols * m.ElementSize;
+                byte[] data = new byte[dataLength];
+                if (dataLength != 0)
+                    Buffer.BlockCopy(m.GetData(false), 0, data, 0, data.Length);
+
+                var result = new MatrixDescriptor()
+                {
+                    Cols = m.Cols,
+                    Rows = m.Rows,
+                    Depth = (int)m.Depth,
+                    Data = data
+                };
+                return result;
+
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        private static Feature2D GetKeyPointsDetector(ImageDescriptorType descType)
         {
             switch (descType)
             {
@@ -103,6 +138,22 @@ namespace CBIR.CV
             }
         }
 
+        private DistanceType GetDistanceType(ImageDescriptorType imgDescType)
+        {
+            switch (imgDescType)
+            {
+                case ImageDescriptorType.Brisk:
+                    return DistanceType.Hamming2;
+
+                case ImageDescriptorType.Orb:
+                    return DistanceType.Hamming2;
+
+                case ImageDescriptorType.Sift:
+                default:
+                    return DistanceType.L2;
+            }
+        }
+
         private Feature2D GetDescriptorDetector(Feature2D keyPointsDetector)
         {
             switch (keyPointsDetector)
@@ -117,15 +168,25 @@ namespace CBIR.CV
             }
         }
 
-
-        public string PerceptualHash => GetStringHash(pHash);
-
-        public string ColorMomentHash => GetStringHash(cmHash);
-
-        public ImageFeatures(string externalFile, ImageDescriptorType imgDesc = ImageDescriptorType.Default, bool calculateHashes = true)
+        private Mat GetDescriptor(Mat img, ImageDescriptorType imgDescType)
         {
-            imgDescType = imgDesc;
+            var descriptor = new Mat();
+            using (var keyPointsDetector = GetKeyPointsDetector(imgDescType))
+            using (var descriptorDetector = GetDescriptorDetector(keyPointsDetector))
+            using (var keyPoints = new VectorOfKeyPoint(keyPointsDetector.Detect(img, null)))
+            {
+                descriptorDetector.Compute(img, keyPoints, descriptor);
+            }
+            return descriptor;
+        }
 
+
+        public string PerceptualHash => GetString(pHash);
+
+        public string ColorMomentHash => GetString(cmHash);
+
+        public ImageFeatures(string externalFile, bool calculateHashes = true, params ImageDescriptorType[] imgDescTypes)
+        {
             using (var img = CvInvoke.Imread(externalFile, Emgu.CV.CvEnum.ImreadModes.AnyColor))
             {
                 if (calculateHashes)
@@ -141,24 +202,37 @@ namespace CBIR.CV
                     {
                         hashAlgorithm.Compute(img, cmHash);
                     }
-
                 }
 
-                descriptor = new Mat();
-                using (var keyPointsDetector = GetKeyPointsDetector(imgDescType))
-                using (var descriptorDetector = GetDescriptorDetector(keyPointsDetector))
-                using (var keyPoints = new VectorOfKeyPoint(keyPointsDetector.Detect(img, null)))
+                if (imgDescTypes.Any())
                 {
-                    distType = GetDistanceType(descriptorDetector);
-                    descriptorDetector.Compute(img, keyPoints, descriptor);
+                    imgDescType = imgDescTypes.First();
+                    descriptor = GetDescriptor(img, imgDescType);
+                    distType = GetDistanceType(imgDescType);
+                    if (imgDescTypes.Count() > 1)
+                    {
+                        allDescriptors = new SortedList<ImageDescriptorType, Mat>()
+                        {
+                            { imgDescType, descriptor }
+                        };
+                        foreach (var type in imgDescTypes.Skip(1))
+                            allDescriptors.Add(type, GetDescriptor(img, type));
+                    }
                 }
             }
         }
 
         public ImageFeatures(string pmHash, string cmHash)
         {
-            pHash = GetMatHash(Emgu.CV.CvEnum.DepthType.Cv8U, pmHash);
-            this.cmHash = GetMatHash(Emgu.CV.CvEnum.DepthType.Cv64F, cmHash);
+            this.pHash = GetMatrix(Emgu.CV.CvEnum.DepthType.Cv8U, pmHash);
+            this.cmHash = GetMatrix(Emgu.CV.CvEnum.DepthType.Cv64F, cmHash);
+        }
+
+        public ImageFeatures(MatrixDescriptor descriptor, ImageDescriptorType imgDescType = ImageDescriptorType.Default)
+        {
+            this.imgDescType = imgDescType;
+            this.descriptor = GetMatrix(descriptor);
+            this.distType = GetDistanceType(imgDescType);
         }
 
         public static (double phash, double cmhash) GetHashesDistance(ImageFeatures img1, ImageFeatures img2)
@@ -232,13 +306,24 @@ namespace CBIR.CV
                 {
                     pHash?.Dispose();
                     cmHash?.Dispose();
-                    descriptor?.Dispose();
                     matcher?.Dispose();
+
+                    if (allDescriptors != null)
+                    {
+                        foreach (var d in allDescriptors.Values)
+                            d.Dispose();
+                    }
+                    else 
+                    {
+                        descriptor?.Dispose();
+                    }
                 }
 
                 disposedValue = true;
             }
         }
+
+        public MatrixDescriptor this[ImageDescriptorType index] => GetDescriptor(allDescriptors[index]);
 
         public void Dispose()
         {

@@ -56,9 +56,10 @@ namespace CBIR.ImportImages
             {
                 x.CaseInsensitiveEnumValues = true;
                 x.HelpWriter = Parser.Default.Settings.HelpWriter;
-            }).ParseArguments<ImportOptions, TestByCategoryOptions, TestByImageOptions, TestByMLOptions, CompareImagesOptions>(args)
+            }).ParseArguments<ImportOptions, EvaluateOptions, TestByCategoryOptions, TestByImageOptions, TestByMLOptions, CompareImagesOptions>(args)
                     .MapResult(
                         (ImportOptions opts) => ImportImages(opts),
+                        (EvaluateOptions opts) => EvaluateMethod(opts),
                         (TestByCategoryOptions opts) => TestCategory(opts),
                         (TestByImageOptions opts) => TestImage(opts),
                         (TestByMLOptions opts) => TestImageWithML(opts),
@@ -108,7 +109,7 @@ namespace CBIR.ImportImages
             var imgClassifier = new ImageClassifier();
             var modelPath = Path.Combine(Path.GetDirectoryName(opts.InceptionPath), "trained-model.zip");
             await Task.Run(() => imgClassifier.LoadModel(modelPath));
-            
+
             var result = imgClassifier.ClassifyImage(opts.ImageName);
             ShowMessage($"Predicted Category: {result.PredictedLabelValue} Score: {result.Score.Max()}");
         }
@@ -124,16 +125,17 @@ namespace CBIR.ImportImages
                 return;
             }
 
-            var queryFeatures = new ImageFeatures(opts.ImageName, opts.DescriptorType);
-            
             var dbContext = services.GetService<ImagesDbContext>();
 
             if (opts.UseDescriptor)
             {
+                var queryFeatures = new ImageFeatures(opts.ImageName, false, opts.DescriptorType);
+
                 var images = dbContext.Images;
 
-                await images.ForEachAsync(img => {
-                    using (var imgFeatures = new ImageFeatures(img.ExternalFile, opts.DescriptorType))
+                await images.ForEachAsync(img =>
+                {
+                    using (var imgFeatures = new ImageFeatures(img.ExternalFile, false, opts.DescriptorType))
                     {
                         var dist = queryFeatures.GetDescriptorDistance(imgFeatures);
                         if (opts.Thresholds.Any())
@@ -151,11 +153,13 @@ namespace CBIR.ImportImages
             }
             else
             {
+                var queryFeatures = new ImageFeatures(opts.ImageName, true);
                 if (opts.Thresholds.Any())
                 {
                     var images = dbContext.Images;
 
-                    await images.ForEachAsync(img => {
+                    await images.ForEachAsync(img =>
+                    {
                         using (var imgFeatures = new ImageFeatures(img.Hash1, img.Hash2))
                         {
                             (var pdist, var cmdist) = ImageFeatures.GetHashesDistance(queryFeatures, imgFeatures);
@@ -169,7 +173,8 @@ namespace CBIR.ImportImages
                     var images = dbContext.Images
                             .Where(x => x.Hash1 == queryFeatures.PerceptualHash || x.Hash2 == queryFeatures.ColorMomentHash);
 
-                    await images.ForEachAsync(x => {
+                    await images.ForEachAsync(x =>
+                    {
                         ShowMessage(x.ExternalFile);
                     });
                 }
@@ -183,16 +188,143 @@ namespace CBIR.ImportImages
             var dbContext = services.GetService<ImagesDbContext>();
 
             var categories = dbContext.Categories.Include(x => x.Images);
-            await categories.ForEachAsync(x => {
+            await categories.ForEachAsync(x =>
+            {
                 foreach (var c in opts.Categories)
                     if (opts.Strict && x.Name == c ||
                         !opts.Strict && x.Name.Contains(c))
                     {
                         ShowMessage(x.Name);
-                        foreach(var i in x.Images)
+                        foreach (var i in x.Images)
                             ShowMessage($"\t{i.ExternalFile}");
                     }
             });
+        }
+
+        private async Task<(double, double)> EvalMethod(string categName, string queryImgName, ImageDescriptorType method, double threshold = 100, int max = 8)
+        {
+            var relevants = new List<RelevantImage>();
+
+            var dbContext = services.GetService<ImagesDbContext>();
+
+            var imgDescType = method;
+            var queryFeatures = new ImageFeatures(queryImgName, false, imgDescType);
+
+            var images = dbContext.Images
+                    .Include(x => x.Categories)
+                    .Include(x => x.Descriptors.Where(y => y.Type == imgDescType));
+
+            await foreach (var img in images.AsAsyncEnumerable())
+            {
+                using (var imgFeatures = new ImageFeatures(img.Descriptors.Single(), imgDescType))
+                {
+                    var dist = queryFeatures.GetDescriptorDistance(imgFeatures);
+
+                    if (0 <= dist && dist <= threshold)
+                    {
+                        var relevance = 100 * (threshold - dist) / threshold;
+
+                        relevants.Add(new RelevantImage()
+                        {
+                            Category = img.Categories.First().Name,
+                            Filename = img.ExternalFile,
+                            Relevance = relevance,
+                        });
+                    }
+
+                }
+            }
+
+            var sortedRelevants = relevants.OrderByDescending(x => x.Relevance).AsEnumerable().Take(max);
+            var rate1 = relevants.Count(x => x.Category == categName) / (double)relevants.Count();
+            var rate2 = sortedRelevants.Count(x => x.Category == categName) / (double)sortedRelevants.Count();
+
+            return (rate1, rate2);
+        }
+
+        private async Task<IDictionary<string, string>> GetCategoryFolders(string testRootFolder, IEnumerable<string> categories)
+        {
+            var root = testRootFolder;
+            if (!Path.EndsInDirectorySeparator(root))
+                root += Path.DirectorySeparatorChar;
+
+            var pluralizer = services.GetService<IPluralize>();
+
+            var result = new SortedList<string, string>();
+            await Task.Run(() =>
+            {
+                foreach (var folderCategory in Directory.GetDirectories(root))
+                {
+                    var categoryName = pluralizer.Singularize(
+                        Path.GetFileName(folderCategory)
+                            .Replace('-', ' ')
+                            .Replace('_', ' ')
+                            .ToLower());
+
+                    if (categories.Contains(categoryName))
+                        result.Add(categoryName, folderCategory);
+                }
+            });
+
+            return result;
+        }
+
+        private async Task<double> EstimateThreshold(string categName, string queryImgName, ImageDescriptorType method)
+        {
+            var dbContext = services.GetService<ImagesDbContext>();
+
+            var imgDescType = method;
+            var queryFeatures = new ImageFeatures(queryImgName, false, imgDescType);
+
+            var images = dbContext.Images
+                    .Include(x => x.Categories)
+                    .Include(x => x.Descriptors.Where(y => y.Type == imgDescType))
+                    .Where(x => x.Categories.Any(y => y.Name == categName));
+
+            double maxDistance = 0;
+            await foreach (var img in images.AsAsyncEnumerable())
+            {
+                using (var imgFeatures = new ImageFeatures(img.Descriptors.Single(), imgDescType))
+                {
+                    var dist = queryFeatures.GetDescriptorDistance(imgFeatures);
+
+                    if (dist > maxDistance)
+                        maxDistance = dist;
+                }
+            }
+
+            return maxDistance;
+        }
+
+        private async Task EvaluateMethod(EvaluateOptions opts)
+        {
+            options = opts;
+
+            if (!Directory.Exists(opts.TestRootFolder))
+            {
+                ShowMessage($"Folder {opts.TestRootFolder} does not exists");
+                return;
+            }
+
+            var categFolders = await GetCategoryFolders(opts.TestRootFolder, opts.Categories);
+
+            var crono = new Stopwatch();
+            foreach (var categName in opts.Categories)
+            {
+                if (!categFolders.ContainsKey(categName))
+                {
+                    ShowMessage($"There is no folder for category {categName}");
+                    continue;
+                }
+
+                var queryImgName = Directory.GetFiles(categFolders[categName]).FirstOrDefault();
+
+                crono.Restart();
+                var threshold = Math.Ceiling(await EstimateThreshold(categName, queryImgName, opts.DescriptorType));
+                var (rate1, rate2) = await EvalMethod(categName, queryImgName, opts.DescriptorType, threshold);
+                crono.Stop();
+                ShowMessage($"Category: {categName,10:C} Rate1: {100.0*rate1:0.#0}% Rate2: {100.0 * rate2:0.#0}% Threshold: {threshold,6:0.##} Time: {crono.Elapsed.TotalSeconds:0.#0}s");
+            }
         }
 
         private async Task ImportImages(ImportOptions opts)
@@ -214,8 +346,9 @@ namespace CBIR.ImportImages
 
             var timer = new Stopwatch();
             timer.Start();
-            await Task.Run(async () => { 
-                foreach(var folder in Directory.GetDirectories(opts.RootFolder))
+            await Task.Run(async () =>
+            {
+                foreach (var folder in Directory.GetDirectories(opts.RootFolder))
                 {
                     var importedImages = await ProcessFolder(folder);
                     imgData.AddRange(
@@ -260,7 +393,8 @@ namespace CBIR.ImportImages
 
             ShowMessage($"Processing folder: {folderCategory} as category {categoryName}...");
             IEnumerable<string> imageNames = null;
-            await Task.Run(async () => {
+            await Task.Run(async () =>
+            {
                 var processed = 0;
                 var timer = new Stopwatch();
                 timer.Start();
@@ -268,7 +402,7 @@ namespace CBIR.ImportImages
                 if (GetOptions<ImportOptions>().ImportByName)
                     imageNames = imageNames.OrderBy(x => x);
                 if (GetOptions<ImportOptions>().MaxImagesPerFolder.HasValue)
-                        imageNames = imageNames.Take((int)GetOptions<ImportOptions>().MaxImagesPerFolder);
+                    imageNames = imageNames.Take((int)GetOptions<ImportOptions>().MaxImagesPerFolder);
                 foreach (var imageName in imageNames)
                 {
                     if (!GetOptions<ImportOptions>().TrainModel)
@@ -297,7 +431,16 @@ namespace CBIR.ImportImages
                 }
             }
 
-            var features = new ImageFeatures(fileName);
+            var imgDescTypes = new ImageDescriptorType[]
+            {
+                ImageDescriptorType.Brisk,
+                ImageDescriptorType.Orb,
+                ImageDescriptorType.Sift,
+                ImageDescriptorType.Fast,
+                ImageDescriptorType.SimpleBlob
+            };
+
+            var features = new ImageFeatures(fileName, true, imgDescTypes);
 
             if (alreadyInDatabase == null)
             {
@@ -330,14 +473,35 @@ namespace CBIR.ImportImages
                 ExternalFile = fileName,
                 Hash1 = features.PerceptualHash,
                 Hash2 = features.ColorMomentHash,
-                Categories = new List<Category>()
+                Categories = new List<Category>(),
+                Descriptors = new List<ImageDescriptor>()
             };
             image.Categories.Add(category);
 
+
             if (image.Id != Guid.Empty)
+            {
                 dbContext.Update(image);
+            }
             else
+            {
+                foreach (var t in imgDescTypes)
+                {
+                    var mDesc = features[t];
+                    var imgDesc = new ImageDescriptor()
+                    {
+                        Image = image,
+
+                        Cols = mDesc.Cols,
+                        Rows = mDesc.Rows,
+                        Depth = mDesc.Depth,
+                        Type = t,
+                        Data = mDesc.Data
+                    };
+                    image.Descriptors.Add(imgDesc);
+                }
                 await dbContext.AddAsync(image);
+            }
 
             await dbContext.SaveChangesAsync();
         }

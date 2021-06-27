@@ -27,6 +27,10 @@
     "CBIR.ImportImages - import (create ML model))": {
       "commandName": "Project",
       "commandLineArgs": "import --path D:\\Works\\Pablo\\CBIR\\Datasets\\Caltech-256  -m --inception-path D:\\Works\\Pablo\\CBIR\\Inception\\tensorflow_inception_graph.pb"
+    },
+    "CBIR.ImportImages - eval method": {
+      "commandName": "Project",
+      "commandLineArgs": "eval --testpath D:\\Works\\Pablo\\CBIR\\Datasets\\Caltech-256-2  --method fast --categ \"fire truck\" teapot "
     }
   }
 }

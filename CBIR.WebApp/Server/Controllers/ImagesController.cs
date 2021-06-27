@@ -64,10 +64,10 @@ namespace CBIR.WebApp.Server.Controllers
 
             if (!string.IsNullOrEmpty(queryImgName))
             {
-                var queryFeatures = new ImageFeatures(queryImgName, GetDescriptorType(detector));
-
                 if (mode == ImageComparisonMode.Hashes)
                 {
+                    var queryFeatures = new ImageFeatures(queryImgName, true);
+
                     if (!strict)
                     {
                         var images = dbContext.Images.Include(x => x.Categories);
@@ -125,13 +125,17 @@ namespace CBIR.WebApp.Server.Controllers
                 }
                 else
                 {
+                    var imgDescType = GetDescriptorType(detector);
+                    var queryFeatures = new ImageFeatures(queryImgName, false, imgDescType);
+
                     var images = dbContext.Images
-                            .Include(x => x.Categories);
+                            .Include(x => x.Categories)
+                            .Include(x => x.Descriptors.Where(y => y.Type == imgDescType));
 
                     var counter = 0;
                     await foreach (var img in images.AsAsyncEnumerable())
                     {
-                        using (var imgFeatures = new ImageFeatures(img.ExternalFile, GetDescriptorType(detector), false))
+                        using (var imgFeatures = new ImageFeatures(img.Descriptors.Single(), imgDescType))
                         {
                             var dist = queryFeatures.GetDescriptorDistance(imgFeatures);
                             if (strict)

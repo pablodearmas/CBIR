@@ -35,6 +35,20 @@ namespace CBIR.ImportImages
 
 	}
 
+	[Verb("eval", HelpText = "eval features extraction method")]
+	public class EvaluateOptions : GlobalOptions
+	{
+		[Option("testpath", Required = true, HelpText = "path of directory with test images")]
+		public string TestRootFolder { set; get; }
+
+		[Option("categ", Required = true, HelpText = "categories to use for testing", Min = 1)]
+		public IEnumerable<string> Categories { set; get; }
+
+		[Option("method", Required = false, Default = ImageDescriptorType.Default, HelpText = "features extraction method to test")]
+		public ImageDescriptorType DescriptorType { set; get; }
+	}
+
+
 	[Verb("test-ctg", HelpText = "test by category")]
 	public class TestByCategoryOptions : GlobalOptions
 	{
